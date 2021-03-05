@@ -12,18 +12,17 @@ ui <- fluidPage(
           
          
           fileInput("file1", "Choose input data"),
+          uiOutput("category1"),          
+          uiOutput("category2"),
+
+          
           fluidRow(
                 column(12, 
                        htmlOutput(outputId = "tp")  
                 )
             ),
-          selectizeInput("show_vars", "Columns to show:",
-                         choices = colnames(data), multiple = TRUE,
-                         selected = c("age","Info","Category2")),
-          uiOutput("category1"),
-          uiOutput("category2"),
-          uiOutput("sizeslider")
-    
+  
+  
             
         ),
         mainPanel(
@@ -43,46 +42,6 @@ ui <- fluidPage(
                                     plotOutput(outputId = "boxplot"),
                                     plotOutput(outputId = "boxplotSpecies")
                                     ),
-                           tabPanel("Hostogram", 
-                                    fluidRow(
-                                            column(6, 
-                                               plotOutput(outputId = "HistogramPW"),
-                                               sliderInput("bins",
-                                                           "Number of bins:",
-                                                           min = 1,
-                                                           max = 50,
-                                                           value = 5)
-                                               ),
-                                            column(6, 
-                                               plotOutput(outputId = "HistogramSW"),
-                                               sliderInput("bins2",
-                                                           "Number of bins:",
-                                                           min = 1,
-                                                           max = 50,
-                                                           value = 5)
-                                            )
-                                    ),
-                                    fluidRow(
-                                            column(6, 
-                                               plotOutput(outputId = "HistogramPL"),
-                                               sliderInput("bins3",
-                                                           "Number of bins:",
-                                                           min = 1,
-                                                           max = 50,
-                                                           value = 5)
-                                                ),
-                                            column(6, 
-                                               plotOutput(outputId = "HistogramSL"),
-                                               sliderInput("bins4",
-                                                           "Number of bins:",
-                                                           min = 1,
-                                                           max = 50,
-                                                           value = 5)
-                                            )
-                                    )
-                                
-                                ),
-                           
                            tabPanel("Pie", 
                                     fluidRow(
                                       column(12, 
@@ -91,26 +50,23 @@ ui <- fluidPage(
                                     )
                                     
                            ),
-                           tabPanel("Pairs", 
+                           tabPanel("Hostogram", 
+                                    fluidRow(
+                                            column(12, 
+                                               plotOutput(outputId = "HistogramPW"),
+                                               sliderInput("bins",
+                                                           "Number of bins:",
+                                                           min = 1,
+                                                           max = 50,
+                                                           value = 5)
+                                               )
+                                    )
                                     
-                                    plotOutput(outputId = "Pairs")
                            ),
                            tabPanel("Nuage", 
                                     fluidRow(
-                                      column(6, 
+                                      column(12, 
                                              plotOutput(outputId = "Nuage")
-                                             
-                                      ),
-                                      column(6, 
-                                             plotOutput(outputId = "Nuage2")
-                                             
-                                      ),
-                                      column(6, 
-                                             plotOutput(outputId = "Nuage3")
-                                             
-                                      ),
-                                      column(6, 
-                                             plotOutput(outputId = "Nuage4")
                                              
                                       )
                                     )
@@ -177,6 +133,9 @@ server <- function(input, output) {
     output$category1 <- renderUI({
       selectizeInput('cat1', 'Choose one variable', choices = c("All",sort(as.character(unique(names(myData()))))),selected = "age")
     })
+    output$category2 <- renderUI({
+      selectizeInput('cat2', 'Choose the seconde variable', choices = c("All",sort(as.character(unique(names(myData()))))),selected = "age")
+    })
     
     df_subset <- eventReactive(input$cat1,{
       if(input$cat1=="age") {df_subset <- data}
@@ -196,12 +155,12 @@ server <- function(input, output) {
     
     #BOXPLOT
     output$boxplot <- renderPlot({
-        boxplot(iris$Petal.Width,iris$Sepal.Width,iris$Petal.Length,iris$Sepal.Length,
-                at = c(1,2,5,6),
-                names = c("Petal.W", "Sepal.W", "Petal.L", "Sepal.L"),
-                col = c("orange","red","orange","red"),
-                main = "IRIS BOXPLOT",
-                xlab = "Mesures(centimeters [CM])",las = 1,
+        boxplot(myData()[input$cat1],
+                at = c(1),
+                names = c("Petal.W"),
+                col = c("orange"),
+                main = input$cat1,
+                xlab = input$cat1,las = 1,
                 border = "brown",
                 notch = TRUE,
                 horizontal = TRUE
@@ -211,58 +170,17 @@ server <- function(input, output) {
     
     output$HistogramPW <- renderPlot({
       
- 
-      
-      
-        pw = iris$Petal.Width
+        pw = myData()[[input$cat1]]
+
         bins <- seq(min(pw), max(pw), length.out = input$bins + 1)
         hist(pw,
              breaks = bins,
              col = "orange",
-             main = "Number of Flowers by Petal Width",
-             xlab = "Petal Width",
-             ylab = "Number of Flowers")
+             main = input$cat1,
+             xlab = input$cat1,
+             ylab = "Number ")
 
     })
-    
-    output$HistogramSW <- renderPlot({
-        sw = iris$Sepal.Width
-        bins <- seq(min(sw), max(sw), length.out = input$bins2 + 1)
-        hist(sw,
-             breaks = bins,
-             col = "orange",
-             main = "Number of Flowers by Sepal Width",
-             xlab = "Sepal Width",
-             ylab = "Number of Flowers")
-        
-    })
-    
-    output$HistogramPL <- renderPlot({
-        pl = iris$Petal.Length
-        bins <- seq(min(pl), max(pl), length.out = input$bins3 + 1)
-        
-        hist(pl,             
-             breaks = bins,
-             col = "orange",
-             main = "Number of Flowers by Petal Length",
-             xlab = "Petal Length",
-             ylab = "Number of Flowers")
-        
-    })
-    
-    output$HistogramSL <- renderPlot({
-        sl = iris$Sepal.Length
-        bins <- seq(min(sl), max(sl), length.out = input$bins4 + 1)
-        
-        hist(sl,
-             breaks = bins,
-             col = "orange",
-             main = "Number of Flowers by Sepal Length",
-             xlab = "Sepal Length",
-             ylab = "Number of Flowers")
-        
-    })
-    
     
     output$summary <- renderPrint({
       dataset <- myData()
@@ -277,40 +195,23 @@ server <- function(input, output) {
   
     
     #----------------------PAIRS--------------------------------------
-    output$Pairs <- renderPlot({
-      
-      pairs(iris[,1:4])
-      
-    })
+    
     #-----------------------NUAGE---------------------------------------
     library(ggplot2)
     
     output$Nuage <- renderPlot({
       # Basic scatter plot
-      ggplot(iris, aes(x=Sepal.Length, y=Species)) + geom_point()
-      
+      p <- ggplot(myData(), aes(x=myData()[[input$cat1]], y=myData()[[input$cat2]])) + geom_point()
+      p + labs(x = input$cat1,y = input$cat2)
+
     })
-    output$Nuage2 <- renderPlot({
-      # Basic scatter plot
-      ggplot(iris, aes(x=Petal.Length, y=Species)) + geom_point()
-      
-    })
-    output$Nuage3 <- renderPlot({
-      # Basic scatter plot
-      ggplot(iris, aes(x=Petal.Width, y=Species)) + geom_point()
-      
-    })
-    output$Nuage4 <- renderPlot({
-      # Basic scatter plot
-      ggplot(iris, aes(x=Sepal.Width, y=Species)) + geom_point()
-      
-    })
+    
     
     #-----------------------LR--------------------------------------------
     library(DataExplorer)
     library(corrplot)
     output$Coorelation <- renderPlot({
-            plot_correlation(iris)
+            plot_correlation(myData())
       
     })
     #---------------------- Barplot---------------------------------------
@@ -318,12 +219,15 @@ server <- function(input, output) {
     # Bidimensionnel
     output$barplotBi <- renderPlot({
       # Diagramme en barres entre les variables 'Level' et 'Sex'
-      ggplot(iris, aes(x = Petal.Length, fill = Species)) + geom_bar()
+      p <- ggplot(myData(), aes(x =myData()[[input$cat1]], fill = y)) + geom_bar()
+      p + labs(x = input$cat1)
     })
     
     output$barplotProfils <- renderPlot({
       # Diagramme de profils entre les variables 'Level' et 'Sex'
-      ggplot(iris, aes(x = Petal.Length, fill = Species)) + geom_bar(position = "fill")
+      p <- ggplot(myData(), aes(x = myData()[[input$cat1]], fill = y)) + geom_bar(position = "fill")
+      p + labs(x = input$cat1)
+      
     })
   
     #----------------------ABOUT------------------------------------------
