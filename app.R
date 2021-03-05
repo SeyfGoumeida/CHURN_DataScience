@@ -76,10 +76,22 @@ ui <- fluidPage(
                                     plotOutput(outputId = "Coorelation")
                                     
                            ),
-                           tabPanel("barplotDodgeBi", 
-                                    plotOutput(outputId = "barplotBi"),
+                           tabPanel("Customer attrition", 
+                                    fluidRow(
+                                      column(12, 
+                                             plotOutput(outputId = "Customer_attrition")
+                                      )
+                                    )
                                     
+                           ),
+                           tabPanel("Variables distribution in customer attrition", 
                                     plotOutput(outputId = "barplotProfils")
+                                    
+
+                           ),
+                           tabPanel("Variable ciblé", 
+                                    plotOutput(outputId = "barplotBi")
+                                    
                            ),
                            tabPanel("About", 
                                     
@@ -193,6 +205,11 @@ server <- function(input, output) {
           main = input$cat1, col=c())    
       })
   
+    #-------------------------Customer attrition--------------------------------------
+    output$Customer_attrition <- renderPlot({
+      pie(table(myData()$y), labels = names(table(myData()$y)), 
+          main = "churn", col=c())    
+    })
     
     #----------------------PAIRS--------------------------------------
     
