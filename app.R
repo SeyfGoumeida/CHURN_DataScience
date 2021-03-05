@@ -183,7 +183,11 @@ server <- function(input, output) {
       else{df_subset <- data[input$cat1,]}
       
     })
-    
+
+    observeEvent(input$cat1, {
+      print(paste0("You have chosen: ", input$cat1))
+      
+    })
     # customize the length drop-down menu; display 5 rows per page by default
     output$mytable3 <- DT::renderDataTable({
         DT::datatable(myData())
@@ -267,8 +271,8 @@ server <- function(input, output) {
     
     #-------------------------Pie--------------------------------------
     output$Pie <- renderPlot({
-      pie(table(myData()$input$cat1), labels = names(table(myData()$input$cat1)), 
-          main = "Species", col=c())    
+      pie(table(myData()[input$cat1]), labels = names(table(myData()[input$cat1])), 
+          main = input$cat1, col=c())    
       })
   
     
@@ -321,9 +325,7 @@ server <- function(input, output) {
       # Diagramme de profils entre les variables 'Level' et 'Sex'
       ggplot(iris, aes(x = Petal.Length, fill = Species)) + geom_bar(position = "fill")
     })
-    observeEvent(input$cat1, {
-      print(paste0("You have chosen: ", input$cat1))
-    })
+  
     #----------------------ABOUT------------------------------------------
     output$About <- renderUI({
         
