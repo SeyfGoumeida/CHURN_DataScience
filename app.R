@@ -1,5 +1,16 @@
+rm(list = ls())
 library(shiny)
-
+library (reticulate )
+library(dplyr)
+library(class)
+library(caret)
+library(shiny)
+library(Metrics)
+library(scales)
+library(RColorBrewer)
+library(grid)
+library(DataExplorer)
+library(corrplot)
 ui <- fluidPage(
 
     titlePanel("TP IRIS {GOUMEIDA AHMED SEYFEDDINE - MLDS}"),
@@ -14,8 +25,12 @@ ui <- fluidPage(
           fileInput("file1", "Choose input data"),
           uiOutput("category1"),          
           uiOutput("category2"),
+          sliderInput("k",
+                      "number of neighbors (K of KNN)",
+                      min = 1,
+                      max = 20,
+                      value = 5),
 
-          
           fluidRow(
                 column(12, 
                        htmlOutput(outputId = "tp")  
@@ -89,10 +104,22 @@ ui <- fluidPage(
                                     
 
                            ),
-                           tabPanel("Variable ciblé", 
-                                    plotOutput(outputId = "barplotBi")
+                           tabPanel("Variable ciblé(age)", 
                                     
-                           ),
+                                    fluidRow(
+                                      column(12,
+                                             plotOutput(outputId = "barplotBi")
+                                             ),
+                                    fluidRow(      
+                                      column(12,
+                                             plotOutput("ScatterPlot")
+                                             )
+                                    )
+                           )),
+                           tabPanel("KNN", 
+                                    dataTableOutput('confusionMatrix'),
+                                    verbatimTextOutput("value")
+                                    ),
                            tabPanel("About", 
                                     
                                     htmlOutput(outputId = "About")
@@ -157,8 +184,15 @@ server <- function(input, output) {
 
     observeEvent(input$cat1, {
       print(paste0("You have chosen: ", input$cat1))
+      #print(paste0("You have chosen: ", myData()[1:20]))
       
     })
+    observeEvent(input$k, {
+      print(paste0("k = : ", input$k))
+      #print(paste0("You have chosen: ", myData()[1:20]))
+      
+    })
+    
     # customize the length drop-down menu; display 5 rows per page by default
     output$mytable3 <- DT::renderDataTable({
         DT::datatable(myData())
@@ -225,8 +259,7 @@ server <- function(input, output) {
     
     
     #-----------------------LR--------------------------------------------
-    library(DataExplorer)
-    library(corrplot)
+
     output$Coorelation <- renderPlot({
             plot_correlation(myData())
       
@@ -236,9 +269,20 @@ server <- function(input, output) {
     # Bidimensionnel
     output$barplotBi <- renderPlot({
       # Diagramme en barres entre les variables 'Level' et 'Sex'
-      p <- ggplot(myData(), aes(x =myData()[[input$cat1]], fill = y)) + geom_bar()
-      p + labs(x = input$cat1)
+      p <- ggplot(myData(), aes(x =myData()$age, fill = y)) + geom_bar()
+      p + labs(x = "age")
     })
+    
+    output$ScatterPlot <- renderPlot({
+      ggplot(myData(), aes_string(x = myData()$age, 
+                            y = myData()[[input$cat1]], 
+                            color = "factor(y)")) + 
+        geom_point(size = 2, position = position_jitter(w = 0.1, h = 0.1)) + 
+        labs(x = "Age",
+             y = input$cat1) +
+        fte_theme() + 
+        scale_color_manual(name = "Churn",values=c("#7A99AC", "#E4002B")) 
+    })          
     
     output$barplotProfils <- renderPlot({
       # Diagramme de profils entre les variables 'Level' et 'Sex'
@@ -247,7 +291,7 @@ server <- function(input, output) {
       
     })
   
-    #----------------------ABOUT------------------------------------------
+#----------------------ABOUT------------------------------------------
     output$About <- renderUI({
         
         HTML(
@@ -278,7 +322,104 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
       
         
         })
+#----------------------KNN--------------------------------------------
+  
+    
+
+      
+      output$value <- renderText({ paste("Classification Error = ",ce(test.Y,knn.pred)) })
+      output$confusionMatrix <- renderDataTable({
+        
+        data= myData()
+        print(paste0("y 9bel myData ", data$y))
+        
+        #data <- as.data.frame(apply(data, 2, as.numeric))
+        as.numeric(data[,21])->data[,21]
+        
+        data <- na.omit(data)
+        
+        data$y[data$y > 0] <- 1
+        data$y <- factor( data$y, levels = c(0,1), labels = c("negative", "positive"))
+        print(paste0("y   =  ", data$y))
+        
+        # standardize all point except the response variable
+        standardized.X <- scale(data[,-21])
+        set.seed(55)
+
+        # create training and test sets
+        training.index <- caret::createDataPartition(data$y, p = .8,list = F)
+        train.X <- standardized.X[training.index,]
+        test.X  <- standardized.X[-training.index,]
+        train.Y <- data$y[training.index]
+        test.Y <- data$y[-training.index]
+        
+        set.seed(1)
+        knn.pred <- knn(data.frame(train.X[,]),
+                        data.frame(test.X[,]),
+                        train.Y, k = input$k)
+        
+        
+        
+        # modify this to show title - confusion matrix
+        # /false posit  ive/positive false negative/negative
+        true.positive    <- sum(knn.pred == "positive" & test.Y == "positive")
+        false.positive   <- sum(knn.pred == "negative" & test.Y == "positive")
+        true.negative    <- sum(knn.pred == "negative" & test.Y == "negative")
+        false.negative   <- sum(knn.pred == "positive" & test.Y == "negative")
+        row.names <- c("Prediction - FALSE", "Prediction - TRUE" )
+        col.names <- c("Reference - FALSE", "Reference - TRUE")
+        cbind(Outcome = row.names, as.data.frame(matrix( 
+          c(true.negative, false.negative, false.positive, true.positive) ,
+          nrow = 2, ncol = 2, dimnames = list(row.names, col.names))))
+      }, options = table.settings
+      )
+      
+      table.settings <- list(searching = F, pageLength = 5, bLengthChange = F,
+                             bPaginate = F, bInfo = F )
+    
     
 }
 
+#----------------------------------THEME-------------------------------------------
+# define theme for ggplots ####
+fte_theme <- function() {
+  
+  # Generate the colors for the chart procedurally with RColorBrewer
+  palette <- brewer.pal("Greys", n=9)
+  color.background = palette[2]
+  color.grid.major = palette[3]
+  color.axis.text = palette[9]
+  color.axis.title = palette[9]
+  color.title = palette[9]
+  text.size <- 14
+  
+  # Begin construction of chart
+  theme_bw(base_size=9) +
+    
+    # Set the entire chart region to a light gray color
+    theme(panel.background=element_rect(fill=color.background, color=color.background)) +
+    theme(plot.background=element_rect(fill=color.background, color=color.background)) +
+    theme(panel.border=element_rect(color=color.background)) +
+    
+    # Format the grid
+    theme(panel.grid.major=element_line(color=color.grid.major,size=.50)) +
+    theme(panel.grid.minor=element_blank()) +
+    theme(axis.ticks=element_blank()) +
+    
+    # Format the legend, but hide by default
+    theme(legend.background = element_rect(fill=color.background)) +
+    theme(legend.text = element_text(size=text.size,color=color.axis.title)) +
+    theme(legend.title = element_text(size=text.size,color=color.axis.title)) +
+    theme(legend.position = "bottom") +
+    theme(legend.direction = "vertical") +
+    # Set title and axis labels, and format these and tick marks
+    theme(plot.title=element_text(color=color.title, size=text.size, vjust=1.25)) +
+    theme(axis.text.x=element_text(size=text.size,color=color.axis.text)) +
+    theme(axis.text.y=element_text(size=text.size,color=color.axis.text)) +
+    theme(axis.title.x=element_text(size=text.size,color=color.axis.title, vjust=0)) +
+    theme(axis.title.y=element_text(size=text.size,color=color.axis.title, vjust=1.25)) +
+    
+    # Plot margins
+    theme(plot.margin = unit(c(0.35, 0.2, 0.3, 0.35), "cm"))
+}
 shinyApp(ui, server)
