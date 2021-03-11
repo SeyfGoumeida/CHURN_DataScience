@@ -12,6 +12,7 @@ library(grid)
 library(DataExplorer)
 library(corrplot)
 library(labelled)
+library(ROSE)
 
 ui <- fluidPage(
 
@@ -119,11 +120,16 @@ ui <- fluidPage(
                                     )
                            )),
                            tabPanel("KNN", 
+                                    checkboxInput("scale","scaled data",FALSE),
                                     dataTableOutput('confusionMatrix'),
-                                    verbatimTextOutput("value")
+                                    verbatimTextOutput("value"),
+                                    dataTableOutput('confusionMatrixbalanced'),
+                                    verbatimTextOutput("valuebalanced")
                                     ),
                            tabPanel("LR",
-                                    fluidRow(column(12,verbatimTextOutput("LR")))
+                                    verbatimTextOutput("LR"),
+                                    uiOutput("balanceType"),
+                                    verbatimTextOutput("LRBalanced"),
                            ),
                            tabPanel("About", 
                                     
@@ -170,7 +176,7 @@ server <- function(input, output) {
       inFile <- input$file1
       if (is.null(inFile)) return(NULL)
   
-      data <- read.csv(inFile$datapath, header = TRUE,sep = ";")
+      data <- read.csv(inFile$datapath, header = TRUE,sep = ";",stringsAsFactors=T)
     })
   
   
@@ -329,22 +335,69 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
         })
 #----------------------------------LOGISTIC REGRESSION--------------------------------
     output$LR <- renderPrint({
-      li=c(1,11,12,13,14,16,17,18,19,20)
+      #li=c(1,11,12,13,14,16,17,18,19,20)
       dataset <- myData()
       dataset <- na.omit(dataset)
+      dataset[] <- lapply(dataset, function(x) as.numeric(x))
       #logreg <-glm(as.formula(paste(dataset[,-21], collapse = " ")),family=binomial(),data=dataset)
       dataset$y <- factor(dataset$y)
-      #print(paste0("y ba3D ", dataset$y[1:10]))
-      glm.fit <- glm(dataset$y ~ age + duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = dataset, family = "binomial")
+      glm.fit <- glm(dataset$y ~ .-y, data = dataset, family = "binomial")
       print("---------------LOGISTIC REGRESSION SUMMARY----------------")
       print(summary(glm.fit))
       glm.probs <- predict(glm.fit,type = "response")
-      glm.pred <- ifelse(glm.probs > 0.5, "yes", "no")
+      glm.pred <- ifelse(glm.probs > 0.5, "2", "1")
       print("-----------------------CONFUSION MATRIX------------------------")
       print(table(glm.pred,dataset$y))
-      print("-----------------------ACCURACY------------------------")
+      print("-----------------------SCORE------------------------")
       mean(glm.pred == dataset$y)
+    })
+#-------------------------------------------------------------------------------------
+    output$balanceType <- renderUI({
+      selectizeInput('type', 'Choose the type of Data balancing ', choices = c("both","under","over"),selected = "both")
+    })
+    observeEvent(input$type, {
+      print(paste0("You have chosen: ", input$type))
+      #print(paste0("You have chosen: ", myData()[1:20]))
       
+    })
+#-------------------------LOGISTIC REGRESSION Balanced Data--------------------------------
+      output$LRBalanced <- renderPrint({
+        #li=c(1,11,12,13,14,16,17,18,19,20)
+       
+        if(isTRUE(input$type == "both"))
+        {
+          dataset <- myData()
+          dataset <- na.omit(dataset)
+          dataset <- ovun.sample(dataset$y ~ ., data = dataset, method ="both",p=0.5,N=60000, seed =1)$dataset
+        }
+        else if(isTRUE(input$type == "under"))
+        {
+          dataset <- myData()
+          dataset <- na.omit(dataset)
+          dataset <- ovun.sample(dataset$y ~ ., data = dataset, method ="under",N=20000, seed =1)$dataset
+        }
+        else
+        {
+          dataset <- myData()
+          dataset <- na.omit(dataset)
+          dataset <- ovun.sample(dataset$y ~ ., data = dataset, method ="over",N=60000, seed =1)$dataset
+        }
+        
+        dataset <- na.omit(dataset)
+        dataset[] <- lapply(dataset, function(x) as.numeric(x))
+        #logreg <-glm(as.formula(paste(dataset[,-21], collapse = " ")),family=binomial(),data=dataset)
+        dataset$y <- factor(dataset$y)
+        glm.fit <- glm(dataset$y ~ .-y, data = dataset, family = "binomial")
+        print("---------------LOGISTIC REGRESSION SUMMARY----------------")
+        print(summary(glm.fit))
+        glm.probs <- predict(glm.fit,type = "response")
+        glm.pred <- ifelse(glm.probs > 0.5, "2", "1")
+        print("-----------------------CONFUSION MATRIX------------------------")
+        print(table(glm.pred,dataset$y))
+        print("-----------------------SCORE------------------------")
+        mean(glm.pred == dataset$y)
+      
+
     })
     #age + duration + campain + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed
     
@@ -356,72 +409,30 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
       output$confusionMatrix <- renderDataTable({
         
         data= myData()
-        #print(paste0("y 9bel myData ", data$y))
-        
-        #data <- as.data.frame(apply(data, 2, as.numeric))
-        #as.numeric(data$y)->data$y
-        #print(paste0("y 9bel myData ", data$job[1:5]))
-        
         data <- na.omit(data)
-        #print(paste0("y 9bel myData ", data$y[1:5]))
-        #data[,21] <- labelled(c(data[,21]), c(0="no",1="yes"))
-        data$y[which(data$y == "yes")] <- 1
-        data$y[which(data$y == "no")] <- 0
-        #print(paste0("y 9bel myData ", data$y))
-        #-----------
-        #data$y<-as.factor(c("yes","no"))
-        #data$y
-        #unclass(data$y)
-        #print(paste0("y 9bel myData ", data$y[1:5]))
-        #-----------
-        #data$y<-as.factor(c("yes","no"))
-        #data$y <- factor( data[,21], levels = c(0,1), labels = c("negative", "positive"))
-        #print(paste0("y prrr   =  ", data$y))
-        #data$newy[which(data$y == 'yes')] <- 1
-        #data$newy[which(data$y == 'no')] <- 0
-        #data$newy <- cut(data$y,c("yes","no"),labels=c(0,1)) 
-        #print(paste0("this is newy ", data$newy))
-        #must_convert<-sapply(data,is.character)
-        #print(paste0("must convert ", must_convert))
-        #data2<-sapply(data[,must_convert],unclass)
-        #out<-cbind(data[,!must_convert],data2)
-        #print(paste0("y 9bel myData ", out$y[1:5]))
-        # standardize all point except the response variable
-        #str(out)
-        #summary(out)
-        #data <- out
-        #data[,11:20] <- lapply(data[,11:20], as.character)
-        #data[,11:20] <- lapply(data[,11:20], as.numeric)
-        #data[] <- lapply(data, function(x) as.numeric(x))
-        #str(data)
-        #summary(data)
+        data[] <- lapply(data, function(x) as.numeric(x))
         standardized.X <- data[,-21]
+        if(input$scale == TRUE){standardized.X <- scale(standardized.X)}
+          
+        #l'application du scale sur des données non équilibrées améliore la prédiction de la classe dominante
+        #contrairment à l'autre classe ce qui confirme la nécessité de l'équilibrage de données
         standardized.X <- na.omit(standardized.X)
         set.seed(55)
-
         # create training and test sets
         training.index <- caret::createDataPartition(data$y, p = .8,list = F)
-        
         train.X <- standardized.X[training.index,]
-       # print(paste0("index ",  train.X[1:5]))
-        
         test.X  <- standardized.X[-training.index,]
-        
         train.Y <- data$y[training.index]
         test.Y <- data$y[-training.index]
-        
         li=c(1,11,12,13,14,16,17,18,19,20)
         set.seed(1)
-        knn.pred <- knn(data.frame(train.X[,li]),data.frame(test.X[,li]),train.Y, k = input$k)
-        
-        
-        
+        knn.pred <- knn(data.frame(train.X[,]),data.frame(test.X[,]),train.Y, k = input$k)
         # modify this to show title - confusion matrix
-        # /false posit  ive/positive false negative/negative
-        true.positive    <- sum(knn.pred == "1" & test.Y == "1")
-        false.positive   <- sum(knn.pred == "0" & test.Y == "1")
-        true.negative    <- sum(knn.pred == "0" & test.Y == "0")
-        false.negative   <- sum(knn.pred == "1" & test.Y == "0")
+        # /false positive/positive false negative/negative
+        true.positive    <- sum(knn.pred == "2" & test.Y == "2")
+        false.positive   <- sum(knn.pred == "1" & test.Y == "2")
+        true.negative    <- sum(knn.pred == "1" & test.Y == "1")
+        false.negative   <- sum(knn.pred == "2" & test.Y == "1")
         row.names <- c("Prediction - FALSE", "Prediction - TRUE" )
         col.names <- c("Reference - FALSE", "Reference - TRUE")
         cbind(Outcome = row.names, as.data.frame(matrix( 
