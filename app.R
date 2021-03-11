@@ -28,6 +28,8 @@ ui <- fluidPage(
           fileInput("file1", "Choose input data"),
           uiOutput("category1"),          
           uiOutput("category2"),
+          checkboxInput("scale","scaled data",FALSE),
+  
           sliderInput("k",
                       "number of neighbors (K of KNN)",
                       min = 1,
@@ -120,7 +122,6 @@ ui <- fluidPage(
                                     )
                            )),
                            tabPanel("KNN", 
-                                    checkboxInput("scale","scaled data",FALSE),
                                     dataTableOutput('confusionMatrix'),
                                     verbatimTextOutput("value"),
                                     dataTableOutput('confusionMatrixbalanced'),
@@ -357,30 +358,31 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
     })
     observeEvent(input$type, {
       print(paste0("You have chosen: ", input$type))
-      #print(paste0("You have chosen: ", myData()[1:20]))
-      
+
     })
 #-------------------------LOGISTIC REGRESSION Balanced Data--------------------------------
       output$LRBalanced <- renderPrint({
         #li=c(1,11,12,13,14,16,17,18,19,20)
-       
+        dataset <<- myData()
+        
         if(isTRUE(input$type == "both"))
         {
-          dataset <- myData()
+          dataset <<- myData()
           dataset <- na.omit(dataset)
-          dataset <- ovun.sample(dataset$y ~ ., data = dataset, method ="both",p=0.5,N=60000, seed =1)$dataset
+          dataset <- ovun.sample(y ~ .-y, data = dataset, method ="both",p=0.5,N=nrow(dataset), seed =1)$data
         }
         else if(isTRUE(input$type == "under"))
         {
-          dataset <- myData()
+          dataset <<- myData()
           dataset <- na.omit(dataset)
-          dataset <- ovun.sample(dataset$y ~ ., data = dataset, method ="under",N=20000, seed =1)$dataset
+          dataset <- ovun.sample(y ~ .-y, data = dataset, method ="under",N=nrow(dataset)/4, seed =1)$data
         }
         else
         {
-          dataset <- myData()
+          dataset <<- myData()
           dataset <- na.omit(dataset)
-          dataset <- ovun.sample(dataset$y ~ ., data = dataset, method ="over",N=60000, seed =1)$dataset
+          dataset <- ovun.sample(y ~ .-y, data = dataset, method ="over",N=nrow(dataset)*2, seed =1)$data
+
         }
         
         dataset <- na.omit(dataset)
@@ -392,9 +394,9 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
         print(summary(glm.fit))
         glm.probs <- predict(glm.fit,type = "response")
         glm.pred <- ifelse(glm.probs > 0.5, "2", "1")
-        print("-----------------------CONFUSION MATRIX------------------------")
+        print("---------------------CONFUSION MATRIX---------------------")
         print(table(glm.pred,dataset$y))
-        print("-----------------------SCORE------------------------")
+        print("-----------------------SCORE------------------------------")
         mean(glm.pred == dataset$y)
       
 
@@ -402,8 +404,6 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
     #age + duration + campain + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed
     
 #----------------------KNN--------------------------------------------
-  
-    
 
       #output$value <- renderText({ paste("Classification Error = ",ce(test.Y,knn.pred)) })
       output$confusionMatrix <- renderDataTable({
@@ -433,14 +433,49 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
         false.positive   <- sum(knn.pred == "1" & test.Y == "2")
         true.negative    <- sum(knn.pred == "1" & test.Y == "1")
         false.negative   <- sum(knn.pred == "2" & test.Y == "1")
-        row.names <- c("Prediction - FALSE", "Prediction - TRUE" )
-        col.names <- c("Reference - FALSE", "Reference - TRUE")
+        row.names <- c("Pre-FALSE", "Pre-TRUE" )
+        col.names <- c("Ref-FALSE", "Ref-TRUE")
         cbind(Outcome = row.names, as.data.frame(matrix( 
           c(true.negative, false.negative, false.positive, true.positive) ,
           nrow = 2, ncol = 2, dimnames = list(row.names, col.names))))
       }, options = table.settings
       )
-    
+    #-------------------------KNN Balanced -------------------------------------
+    output$confusionMatrixbalanced <- renderDataTable({
+      
+      data= myData()
+      data <- na.omit(data)
+      data <- ovun.sample(y ~ .-y, data = data, method ="under",N=nrow(data)/4, seed =1)$data
+      data[] <- lapply(data, function(x) as.numeric(x))
+      standardized.X <- data[,-21]
+      if(input$scale == TRUE){standardized.X <- scale(standardized.X)}
+      
+      #l'application du scale sur des données non équilibrées améliore la prédiction de la classe dominante
+      #contrairment à l'autre classe ce qui confirme la nécessité de l'équilibrage de données
+      standardized.X <- na.omit(standardized.X)
+      set.seed(55)
+      # create training and test sets
+      training.index <- caret::createDataPartition(data$y, p = .8,list = F)
+      train.X <- standardized.X[training.index,]
+      test.X  <- standardized.X[-training.index,]
+      train.Y <- data$y[training.index]
+      test.Y <- data$y[-training.index]
+      li=c(1,11,12,13,14,16,17,18,19,20)
+      set.seed(1)
+      knn.pred <- knn(data.frame(train.X[,]),data.frame(test.X[,]),train.Y, k = input$k)
+      # modify this to show title - confusion matrix
+      # /false positive/positive false negative/negative
+      true.positive    <- sum(knn.pred == "2" & test.Y == "2")
+      false.positive   <- sum(knn.pred == "1" & test.Y == "2")
+      true.negative    <- sum(knn.pred == "1" & test.Y == "1")
+      false.negative   <- sum(knn.pred == "2" & test.Y == "1")
+      row.names <- c("Pre-FALSE-Balanc", "Pre-TRUE-Balanc" )
+      col.names <- c("Ref-FALSE-Balanc", "Ref-TRUE-Balanc")
+      cbind(Outcome = row.names, as.data.frame(matrix( 
+        c(true.negative, false.negative, false.positive, true.positive) ,
+        nrow = 2, ncol = 2, dimnames = list(row.names, col.names))))
+    }, options = table.settings
+    )
       
       table.settings <- list(searching = F, pageLength = 5, bLengthChange = F,
                              bPaginate = F, bInfo = F )
