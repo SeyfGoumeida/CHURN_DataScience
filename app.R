@@ -341,9 +341,9 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
       glm.probs <- predict(glm.fit,type = "response")
       glm.pred <- ifelse(glm.probs > 0.5, "yes", "no")
       print("-----------------------CONFUSION MATRIX------------------------")
-      print(table(glm.pred,y))
+      print(table(glm.pred,dataset$y))
       print("-----------------------ACCURACY------------------------")
-      mean(glm.pred == y)
+      mean(glm.pred == dataset$y)
       
     })
     #age + duration + campain + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed
@@ -393,8 +393,8 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
         #data[,11:20] <- lapply(data[,11:20], as.character)
         #data[,11:20] <- lapply(data[,11:20], as.numeric)
         #data[] <- lapply(data, function(x) as.numeric(x))
-        str(data)
-        summary(data)
+        #str(data)
+        #summary(data)
         standardized.X <- data[,-21]
         standardized.X <- na.omit(standardized.X)
         set.seed(55)
