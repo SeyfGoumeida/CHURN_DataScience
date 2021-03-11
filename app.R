@@ -11,6 +11,8 @@ library(RColorBrewer)
 library(grid)
 library(DataExplorer)
 library(corrplot)
+library(labelled)
+
 ui <- fluidPage(
 
     titlePanel("TP IRIS {GOUMEIDA AHMED SEYFEDDINE - MLDS}"),
@@ -120,6 +122,9 @@ ui <- fluidPage(
                                     dataTableOutput('confusionMatrix'),
                                     verbatimTextOutput("value")
                                     ),
+                           tabPanel("LR",
+                                    fluidRow(column(12,verbatimTextOutput("LR")))
+                           ),
                            tabPanel("About", 
                                     
                                     htmlOutput(outputId = "About")
@@ -258,7 +263,7 @@ server <- function(input, output) {
     })
     
     
-    #-----------------------LR--------------------------------------------
+    #-----------------------CORRELATION--------------------------------------------
 
     output$Coorelation <- renderPlot({
             plot_correlation(myData())
@@ -322,50 +327,101 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
       
         
         })
+#----------------------------------LOGISTIC REGRESSION--------------------------------
+    output$LR <- renderPrint({
+      li=c(1,11,12,13,14,16,17,18,19,20)
+      dataset <- myData()
+      dataset <- na.omit(dataset)
+      #logreg <-glm(as.formula(paste(dataset[,-21], collapse = " ")),family=binomial(),data=dataset)
+      dataset$y <- factor(dataset$y)
+      #print(paste0("y ba3D ", dataset$y[1:10]))
+      glm.fit <- glm(dataset$y ~ age + duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = dataset, family = "binomial")
+      print("---------------LOGISTIC REGRESSION SUMMARY----------------")
+      print(summary(glm.fit))
+      glm.probs <- predict(glm.fit,type = "response")
+      glm.pred <- ifelse(glm.probs > 0.5, "yes", "no")
+      print("-----------------------CONFUSION MATRIX------------------------")
+      print(table(glm.pred,y))
+      print("-----------------------ACCURACY------------------------")
+      mean(glm.pred == y)
+      
+    })
+    #age + duration + campain + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed
+    
 #----------------------KNN--------------------------------------------
   
     
 
-      
-      output$value <- renderText({ paste("Classification Error = ",ce(test.Y,knn.pred)) })
+      #output$value <- renderText({ paste("Classification Error = ",ce(test.Y,knn.pred)) })
       output$confusionMatrix <- renderDataTable({
         
         data= myData()
-        print(paste0("y 9bel myData ", data$y))
+        #print(paste0("y 9bel myData ", data$y))
         
         #data <- as.data.frame(apply(data, 2, as.numeric))
-        as.numeric(data[,21])->data[,21]
+        #as.numeric(data$y)->data$y
+        #print(paste0("y 9bel myData ", data$job[1:5]))
         
         data <- na.omit(data)
-        
-        data$y[data$y > 0] <- 1
-        data$y <- factor( data$y, levels = c(0,1), labels = c("negative", "positive"))
-        print(paste0("y   =  ", data$y))
-        
+        #print(paste0("y 9bel myData ", data$y[1:5]))
+        #data[,21] <- labelled(c(data[,21]), c(0="no",1="yes"))
+        data$y[which(data$y == "yes")] <- 1
+        data$y[which(data$y == "no")] <- 0
+        #print(paste0("y 9bel myData ", data$y))
+        #-----------
+        #data$y<-as.factor(c("yes","no"))
+        #data$y
+        #unclass(data$y)
+        #print(paste0("y 9bel myData ", data$y[1:5]))
+        #-----------
+        #data$y<-as.factor(c("yes","no"))
+        #data$y <- factor( data[,21], levels = c(0,1), labels = c("negative", "positive"))
+        #print(paste0("y prrr   =  ", data$y))
+        #data$newy[which(data$y == 'yes')] <- 1
+        #data$newy[which(data$y == 'no')] <- 0
+        #data$newy <- cut(data$y,c("yes","no"),labels=c(0,1)) 
+        #print(paste0("this is newy ", data$newy))
+        #must_convert<-sapply(data,is.character)
+        #print(paste0("must convert ", must_convert))
+        #data2<-sapply(data[,must_convert],unclass)
+        #out<-cbind(data[,!must_convert],data2)
+        #print(paste0("y 9bel myData ", out$y[1:5]))
         # standardize all point except the response variable
-        standardized.X <- scale(data[,-21])
+        #str(out)
+        #summary(out)
+        #data <- out
+        #data[,11:20] <- lapply(data[,11:20], as.character)
+        #data[,11:20] <- lapply(data[,11:20], as.numeric)
+        #data[] <- lapply(data, function(x) as.numeric(x))
+        str(data)
+        summary(data)
+        standardized.X <- data[,-21]
+        standardized.X <- na.omit(standardized.X)
         set.seed(55)
 
         # create training and test sets
         training.index <- caret::createDataPartition(data$y, p = .8,list = F)
+        
         train.X <- standardized.X[training.index,]
+       # print(paste0("index ",  train.X[1:5]))
+        
         test.X  <- standardized.X[-training.index,]
+        
         train.Y <- data$y[training.index]
         test.Y <- data$y[-training.index]
         
+        li=c(1,11,12,13,14,16,17,18,19,20)
         set.seed(1)
-        knn.pred <- knn(data.frame(train.X[,]),
-                        data.frame(test.X[,]),
-                        train.Y, k = input$k)
+        knn.pred <- knn(data.frame(train.X[,li]),data.frame(test.X[,li]),train.Y, k = input$k)
         
         
         
         # modify this to show title - confusion matrix
         # /false posit  ive/positive false negative/negative
-        true.positive    <- sum(knn.pred == "positive" & test.Y == "positive")
-        false.positive   <- sum(knn.pred == "negative" & test.Y == "positive")
-        true.negative    <- sum(knn.pred == "negative" & test.Y == "negative")
-        false.negative   <- sum(knn.pred == "positive" & test.Y == "negative")
+        true.positive    <- sum(knn.pred == "1" & test.Y == "1")
+        false.positive   <- sum(knn.pred == "0" & test.Y == "1")
+        true.negative    <- sum(knn.pred == "0" & test.Y == "0")
+        false.negative   <- sum(knn.pred == "1" & test.Y == "0")
         row.names <- c("Prediction - FALSE", "Prediction - TRUE" )
         col.names <- c("Reference - FALSE", "Reference - TRUE")
         cbind(Outcome = row.names, as.data.frame(matrix( 
@@ -373,6 +429,7 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
           nrow = 2, ncol = 2, dimnames = list(row.names, col.names))))
       }, options = table.settings
       )
+    
       
       table.settings <- list(searching = F, pageLength = 5, bLengthChange = F,
                              bPaginate = F, bInfo = F )
