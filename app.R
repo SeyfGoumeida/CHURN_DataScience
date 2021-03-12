@@ -16,7 +16,7 @@ library(ROSE)
 
 ui <- fluidPage(
 
-    titlePanel("TP IRIS {GOUMEIDA AHMED SEYFEDDINE - MLDS}"),
+    titlePanel("MINI PROJET {GOUMEIDA & MAAMIR - mlds}"),
     
     
     
@@ -131,10 +131,6 @@ ui <- fluidPage(
                                     verbatimTextOutput("LR"),
                                     uiOutput("balanceType"),
                                     verbatimTextOutput("LRBalanced"),
-                           ),
-                           tabPanel("About", 
-                                    
-                                    htmlOutput(outputId = "About")
                            )
                            
                        )
@@ -149,25 +145,59 @@ ui <- fluidPage(
 server <- function(input, output) {
   
     options(shiny.maxRequestSize=30*1024^2)
+#----------------------iNNONCE DU PROJET------------------------------------------
+  
     output$tp<- renderUI({
       HTML(
-        paste("<h2>TP1 et 2  IRIS</h2>"),
+        paste("<h2>MiniProjet: Churn</h2>"),
         paste("<h3>Objectif: </h3>"),
-        paste("<h4> Creer une shinyapp permettant l’exploration univarie d’un jeu de donnees comportant des variables quantitatives et qualitatives.Votre analyse devra etremise en ligne via votre compte shiny sur shinyapps.io.</h4>" ),
+        paste("<h4> Interface Shiny / Dashboard pour l’exploration de donn´ees.</h4>" ),
         paste("<ul>
-                <li> La liste des jeux de donn´ees possibles est disponible sur mon site google, dans la sectionTeaching ! Datasets mini-projet.</li>
-                <li> Vos analyses doivent reprendre les diff´erents graphiques et coefficients pr´esent´es dans les slides de cours (Univariate analysis).</li>
-                <li> Il est n´ecessaire de cr´eer un compte sur shinyapps.io pour charger et lancer votre application finale.</li>
-                <li> Il est n´ecessaire de cr´eer un compte sur shinyapps.io pour charger et lancer votre application finale.</li>
+                <li> Le projet doit étre realise en binome. Merci de bien preciser les nom et prenom de chaque membre du binome et de mettre en copie votre binome lors de l’envoi des scripts et de votre rappor.</li>
+                <li> Les resultats de vos analyses doivent etre commentes et reprendre les differents notions vues en cours.</li>
+                <li> Vous devez me faire parvenir votre projet (scripts et rapport separes) pour le 19/03/2021 a 23h59 (severine.affeldt@u-paris.fr)..</li>
               </ul>"
               ),
         paste("<h3>---------------------------------------------</h3>"),
         
         paste("<ol>
-                <li> Choisir un jeu de donn´ees (parmi ceux propos´es ou un jeu de donn´ees de votre choix).</li>
-                <li> Faire l’analyse univari´ee des variables.</li>
-                <li> Restituer l’´etude dans une shinyapp qui sera charg´ee dans votre compte shiny</li>
-                <li> Pr´evoir un espace d’aide o`u vous donnerez la probl´ematique du jeu de donn´ees et un bref descriptif des donn´ees.</li>
+                <li> Donnees pour ce mini-projet : vous analyserez au choix les donn´ees suivantes: • Credit fraud • Bank marketing • Employee attrition</li>
+                <li> Realisation attendue : 
+                  <ol>
+                    <lu> . Onglet de presentation des donnees :</lu>
+                      <ol>
+                          <lu> (a) Prevoyez un onglet de presentation des donnees.<br><br></lu>
+                          <lu> (b) Inserer lanalyse univariee des variables(choix dynamique des variables).<br><br></lu>
+                          <lu> (c) Inserer lanalyse bivariee des variables (choix dynamique des paires de variables)<br><br></lu>
+                      </ol>
+                    </lu>
+                    <lu> . Onglet specifique a l’exploration des variables vis-a-vis du churn</lu>
+                      <ol>
+                          <lu> (a) Affichage (dynamique) de Customer attrition in data, Variables distribution in customer attrition.<br><br></lu>
+                          <lu> (b) Affichage cible pour une variable a priori d’interet (comme pour tenure dans le cours).<br><br></lu>
+                      </ol>
+                    </lu>
+                    <lu> . Entraınement de modeles</lu>
+                      <ol>
+                          <lu> (a) Choisissez deux modeles de classification supervisee (eg. logistic regression, KNN...).<br><br></lu>
+                          <lu> (b) Entraınez vos modeles sur vos donnees et faites leur evaluation.<br><br></lu>
+                          <lu> (c) Affichez les resultats de vos modeles dans l’interface.<br><br></lu>
+                          <lu> (d) Resumez clairement vos evaluations.<br><br></lu>
+                      </ol>
+                    </lu>
+                    <lu> Data Balancing <br><br></lu>
+                      <ol>
+                      
+                          <lu> • Resampling strategies for imbalanced datasets<br><br></lu>
+                          <lu> (a) Entraınez vos modeles precedent sur votre jeu reequilibre et faites leur evaluation..<br><br></lu>
+                          <lu> (b) Affichez les resultats de vos modeles dans l’interface.<br><br></lu>
+                          <lu> (c) Resumez clairement vos evaluations.<br><br></lu>
+                      </ol>
+                    </lu>
+
+                  </ol>
+                </li>
+                
               </ol>"
         )
         )
@@ -187,31 +217,13 @@ server <- function(input, output) {
     output$category2 <- renderUI({
       selectizeInput('cat2', 'Choose the seconde variable', choices = c("All",sort(as.character(unique(names(myData()))))),selected = "age")
     })
-    
-    df_subset <- eventReactive(input$cat1,{
-      if(input$cat1=="age") {df_subset <- data}
-      else{df_subset <- data[input$cat1,]}
-      
-    })
-
-    observeEvent(input$cat1, {
-      print(paste0("You have chosen: ", input$cat1))
-      #print(paste0("You have chosen: ", myData()[1:20]))
-      
-    })
-    observeEvent(input$k, {
-      print(paste0("k = : ", input$k))
-      #print(paste0("You have chosen: ", myData()[1:20]))
-      
-    })
-    
-    # customize the length drop-down menu; display 5 rows per page by default
+  
+#----------------------DATASET------------------------------------------
     output$mytable3 <- DT::renderDataTable({
         DT::datatable(myData())
       
     })
-    
-    #BOXPLOT
+#----------------------BOXPLOT------------------------------------------
     output$boxplot <- renderPlot({
         boxplot(myData()[input$cat1],
                 at = c(1),
@@ -224,7 +236,7 @@ server <- function(input, output) {
                 horizontal = TRUE
         )
     })
-    #HISTOGRAM
+#----------------------Histogram------------------------------------------
     
     output$HistogramPW <- renderPlot({
       
@@ -239,27 +251,25 @@ server <- function(input, output) {
              ylab = "Number ")
 
     })
-    
+#----------------------Summary------------------------------------------
     output$summary <- renderPrint({
       dataset <- myData()
       summary(dataset)
     })
     
-    #-------------------------Pie--------------------------------------
+#-------------------------Pie--------------------------------------
     output$Pie <- renderPlot({
       pie(table(myData()[input$cat1]), labels = names(table(myData()[input$cat1])), 
           main = input$cat1, col=c())    
       })
   
-    #-------------------------Customer attrition--------------------------------------
+#-------------------------Customer attrition--------------------------------------
     output$Customer_attrition <- renderPlot({
       pie(table(myData()$y), labels = names(table(myData()$y)), 
           main = "churn", col=c())    
     })
     
-    #----------------------PAIRS--------------------------------------
-    
-    #-----------------------NUAGE---------------------------------------
+#-----------------------NUAGE---------------------------------------
     library(ggplot2)
     
     output$Nuage <- renderPlot({
@@ -270,15 +280,13 @@ server <- function(input, output) {
     })
     
     
-    #-----------------------CORRELATION--------------------------------------------
-
+#-----------------------CORRELATION--------------------------------------------
     output$Coorelation <- renderPlot({
             plot_correlation(myData())
       
     })
-    #---------------------- Barplot---------------------------------------
-   
-    # Bidimensionnel
+#---------------------- Barplot---------------------------------------
+#----------------------Variable ciblé(age)------------------------------------------
     output$barplotBi <- renderPlot({
       # Diagramme en barres entre les variables 'Level' et 'Sex'
       p <- ggplot(myData(), aes(x =myData()$age, fill = y)) + geom_bar()
@@ -295,7 +303,7 @@ server <- function(input, output) {
         fte_theme() + 
         scale_color_manual(name = "Churn",values=c("#7A99AC", "#E4002B")) 
     })          
-    
+#----------------------Histogram------------------------------------------
     output$barplotProfils <- renderPlot({
       # Diagramme de profils entre les variables 'Level' et 'Sex'
       p <- ggplot(myData(), aes(x = myData()[[input$cat1]], fill = y)) + geom_bar(position = "fill")
@@ -303,37 +311,6 @@ server <- function(input, output) {
       
     })
   
-#----------------------ABOUT------------------------------------------
-    output$About <- renderUI({
-        
-        HTML(
-            paste("<h1>About</h1>"),
-            paste("<h1>Edgar Anderson's Iris Data</h1>"),
-            paste("<h2>Description</h2>"),
-            paste("<p>This famous (Fisher's or Anderson's) iris data set gives the measurements in centimeters of the variables sepal length and width and petal length and width, respectively, for 50 flowers from each of 3 species of iris. The species are Iris setosa, versicolor, and virginica.</p>"),
-            paste("<h2>Usage</h2>"),
-            paste("<p>iris , iris3</p>"),
-            paste("<h2>Format</h2>"),
-            paste("<p>iris is a data frame with 150 cases (rows) and 5 variables (columns) named Sepal.Length, Sepal.Width, Petal.Length, Petal.Width, and Species.
-iris3 gives the same data arranged as a 3-dimensional array of size 50 by 4 by 3, as represented by S-PLUS. The first dimension gives the case number within the species subsample, the second the measurements with names Sepal L., Sepal W., Petal L., and Petal W., and the third the species.</p>"),
-            paste("<h2>Source</h2>"),
-            paste("<p>Fisher, R. A. (1936) The use of multiple measurements in taxonomic problems. Annals of Eugenics, 7, Part II, 179–188.
-
-The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Peninsula, Bulletin of the American Iris Society, 59, 2–5.</p>"),
-            
-            paste("<h2>References</h2>"),
-            paste("<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988) The New S Language. Wadsworth & Brooks/Cole. (has iris3 as iris.)</p>"),
-            
-            paste("<h2>See Also</h2>"),
-            paste("<p>matplot some examples of which use iris.</p>"),
-            
-            paste("<h2>Examples</h2>")
-            
-            
-            )
-      
-        
-        })
 #----------------------------------LOGISTIC REGRESSION--------------------------------
     output$LR <- renderPrint({
       #li=c(1,11,12,13,14,16,17,18,19,20)
@@ -352,17 +329,13 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
       print("-----------------------SCORE------------------------")
       mean(glm.pred == dataset$y)
     })
-#-------------------------------------------------------------------------------------
+#-----------------------------balance select type--------------------------------------
     output$balanceType <- renderUI({
       selectizeInput('type', 'Choose the type of Data balancing ', choices = c("both","under","over"),selected = "both")
     })
-    observeEvent(input$type, {
-      print(paste0("You have chosen: ", input$type))
 
-    })
 #-------------------------LOGISTIC REGRESSION Balanced Data--------------------------------
       output$LRBalanced <- renderPrint({
-        #li=c(1,11,12,13,14,16,17,18,19,20)
         dataset <<- myData()
         
         if(isTRUE(input$type == "both"))
@@ -401,11 +374,9 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
       
 
     })
-    #age + duration + campain + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed
-    
+
 #----------------------KNN--------------------------------------------
 
-      #output$value <- renderText({ paste("Classification Error = ",ce(test.Y,knn.pred)) })
       output$confusionMatrix <- renderDataTable({
         
         data= myData()
@@ -424,7 +395,6 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
         test.X  <- standardized.X[-training.index,]
         train.Y <- data$y[training.index]
         test.Y <- data$y[-training.index]
-        li=c(1,11,12,13,14,16,17,18,19,20)
         set.seed(1)
         knn.pred <- knn(data.frame(train.X[,]),data.frame(test.X[,]),train.Y, k = input$k)
         # modify this to show title - confusion matrix
@@ -440,7 +410,7 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
           nrow = 2, ncol = 2, dimnames = list(row.names, col.names))))
       }, options = table.settings
       )
-    #-------------------------KNN Balanced -------------------------------------
+#-------------------------KNN Balanced -------------------------------------
     output$confusionMatrixbalanced <- renderDataTable({
       
       data= myData()
@@ -460,7 +430,6 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
       test.X  <- standardized.X[-training.index,]
       train.Y <- data$y[training.index]
       test.Y <- data$y[-training.index]
-      li=c(1,11,12,13,14,16,17,18,19,20)
       set.seed(1)
       knn.pred <- knn(data.frame(train.X[,]),data.frame(test.X[,]),train.Y, k = input$k)
       # modify this to show title - confusion matrix
@@ -483,46 +452,47 @@ The data were collected by Anderson, Edgar (1935). The irises of the Gaspe Penin
     
 }
 
-#----------------------------------THEME-------------------------------------------
-# define theme for ggplots ####
-fte_theme <- function() {
-  
-  # Generate the colors for the chart procedurally with RColorBrewer
-  palette <- brewer.pal("Greys", n=9)
-  color.background = palette[2]
-  color.grid.major = palette[3]
-  color.axis.text = palette[9]
-  color.axis.title = palette[9]
-  color.title = palette[9]
-  text.size <- 14
-  
-  # Begin construction of chart
-  theme_bw(base_size=9) +
+#----------------------------------THEME--------------------------------------
+    fte_theme <- function() {
     
-    # Set the entire chart region to a light gray color
-    theme(panel.background=element_rect(fill=color.background, color=color.background)) +
-    theme(plot.background=element_rect(fill=color.background, color=color.background)) +
-    theme(panel.border=element_rect(color=color.background)) +
+    # Generate the colors for the chart procedurally with RColorBrewer
+    palette <- brewer.pal("Greys", n=9)
+    color.background = palette[2]
+    color.grid.major = palette[3]
+    color.axis.text = palette[9]
+    color.axis.title = palette[9]
+    color.title = palette[9]
+    text.size <- 14
     
-    # Format the grid
-    theme(panel.grid.major=element_line(color=color.grid.major,size=.50)) +
-    theme(panel.grid.minor=element_blank()) +
-    theme(axis.ticks=element_blank()) +
-    
-    # Format the legend, but hide by default
-    theme(legend.background = element_rect(fill=color.background)) +
-    theme(legend.text = element_text(size=text.size,color=color.axis.title)) +
-    theme(legend.title = element_text(size=text.size,color=color.axis.title)) +
-    theme(legend.position = "bottom") +
-    theme(legend.direction = "vertical") +
-    # Set title and axis labels, and format these and tick marks
-    theme(plot.title=element_text(color=color.title, size=text.size, vjust=1.25)) +
-    theme(axis.text.x=element_text(size=text.size,color=color.axis.text)) +
-    theme(axis.text.y=element_text(size=text.size,color=color.axis.text)) +
-    theme(axis.title.x=element_text(size=text.size,color=color.axis.title, vjust=0)) +
-    theme(axis.title.y=element_text(size=text.size,color=color.axis.title, vjust=1.25)) +
-    
-    # Plot margins
-    theme(plot.margin = unit(c(0.35, 0.2, 0.3, 0.35), "cm"))
-}
+    # Begin construction of chart
+    theme_bw(base_size=9) +
+      
+      # Set the entire chart region to a light gray color
+      theme(panel.background=element_rect(fill=color.background, color=color.background)) +
+      theme(plot.background=element_rect(fill=color.background, color=color.background)) +
+      theme(panel.border=element_rect(color=color.background)) +
+      
+      # Format the grid
+      theme(panel.grid.major=element_line(color=color.grid.major,size=.50)) +
+      theme(panel.grid.minor=element_blank()) +
+      theme(axis.ticks=element_blank()) +
+      
+      # Format the legend, but hide by default
+      theme(legend.background = element_rect(fill=color.background)) +
+      theme(legend.text = element_text(size=text.size,color=color.axis.title)) +
+      theme(legend.title = element_text(size=text.size,color=color.axis.title)) +
+      theme(legend.position = "bottom") +
+      theme(legend.direction = "vertical") +
+      # Set title and axis labels, and format these and tick marks
+      theme(plot.title=element_text(color=color.title, size=text.size, vjust=1.25)) +
+      theme(axis.text.x=element_text(size=text.size,color=color.axis.text)) +
+      theme(axis.text.y=element_text(size=text.size,color=color.axis.text)) +
+      theme(axis.title.x=element_text(size=text.size,color=color.axis.title, vjust=0)) +
+      theme(axis.title.y=element_text(size=text.size,color=color.axis.title, vjust=1.25)) +
+      
+      # Plot margins
+      theme(plot.margin = unit(c(0.35, 0.2, 0.3, 0.35), "cm"))
+  }
 shinyApp(ui, server)
+
+
