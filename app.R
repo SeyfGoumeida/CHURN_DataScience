@@ -333,20 +333,20 @@ server <- function(input, output) {
     })
     #-----------------------------balance select type--------------------------------------
     output$balanceType <- renderUI({
-        selectizeInput('type', 'Choose the type of Data balancing ', choices = c("both","under","over"),selected = "both")
+        selectizeInput('type', 'Choose the type of Data balancing ', choices = c("Both","Under","Over"),selected = "Both")
     })
     
     #-------------------------LOGISTIC REGRESSION Balanced Data--------------------------------
     output$LRBalanced <- renderPrint({
         dataset <<- myData()
         
-        if(isTRUE(input$type == "both"))
+        if(isTRUE(input$type == "Both"))
         {
             dataset <<- myData()
             dataset <- na.omit(dataset)
             dataset <- ovun.sample(y ~ .-y, data = dataset, method ="both",p=0.5,N=nrow(dataset), seed =1)$data
         }
-        else if(isTRUE(input$type == "under"))
+        else if(isTRUE(input$type == "Under"))
         {
             dataset <<- myData()
             dataset <- na.omit(dataset)
@@ -417,7 +417,16 @@ server <- function(input, output) {
         
         data= myData()
         data <- na.omit(data)
-        data <- ovun.sample(y ~ .-y, data = data, method ="under",N=nrow(data)/4, seed =1)$data
+        if(isTRUE(input$type == "Both"))
+            {
+            data <- ovun.sample(y ~ .-y, data = data, method ="both",N=nrow(dataset), seed =1)$data
+        }
+        if(isTRUE(input$type == "Under")){
+            data <- ovun.sample(y ~ .-y, data = data, method ="under",N=nrow(data)/4, seed =1)$data
+        }else{
+            data <- ovun.sample(y ~ .-y, data = data, method ="over",N=nrow(dataset)*2, seed =1)$data
+            
+        }
         data[] <- lapply(data, function(x) as.numeric(x))
         standardized.X <- data[,-21]
         if(input$scale == TRUE){standardized.X <- scale(standardized.X)}
