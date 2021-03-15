@@ -419,12 +419,12 @@ server <- function(input, output) {
         data <- na.omit(data)
         if(isTRUE(input$type == "Both"))
             {
-            data <- ovun.sample(y ~ .-y, data = data, method ="both",N=nrow(dataset), seed =1)$data
+            data <- ovun.sample(y ~ .-y, data = data, method ="both",N=nrow(data), seed =1)$data
         }
         if(isTRUE(input$type == "Under")){
             data <- ovun.sample(y ~ .-y, data = data, method ="under",N=nrow(data)/4, seed =1)$data
         }else{
-            data <- ovun.sample(y ~ .-y, data = data, method ="over",N=nrow(dataset)*2, seed =1)$data
+            data <- ovun.sample(y ~ .-y, data = data, method ="over",N=nrow(data)*2, seed =1)$data
             
         }
         data[] <- lapply(data, function(x) as.numeric(x))
