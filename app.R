@@ -28,6 +28,7 @@ ui <- fluidPage(
             fileInput("file1", "Choose input data"),
             uiOutput("category1"),          
             uiOutput("category2"),
+            uiOutput("balanceType"),
             checkboxInput("scale","scaled data",FALSE),
             
             sliderInput("k",
@@ -131,7 +132,6 @@ ui <- fluidPage(
                                ),
                                tabPanel("LR",
                                         verbatimTextOutput("LR"),
-                                        uiOutput("balanceType"),
                                         verbatimTextOutput("LRBalanced"),
                                )
                                
