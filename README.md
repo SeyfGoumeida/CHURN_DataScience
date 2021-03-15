@@ -1,2 +1,2 @@
-# CHURN_DataScience
+# Shiny App : CHURN
 https://goumeidaahmedseyfeddine.shinyapps.io/Churn/
